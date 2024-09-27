@@ -3,7 +3,10 @@ const express = require('express');
 const mysql = require('mysql2');
 require('dotenv').config();
 const logger = require('./middleware/logger');
-const userRoutes = require('./routes/userRoute'); // Importa tus rutas de usuarios
+const userRoutes = require('./routes/userRoute'); 
+const barrioRoutes = require('./routes/barriosRoute');
+const zonaRoutes = require('./routes/zonasRoute');
+const clientesRoute = require('./routes/clientesRoute');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,8 +33,11 @@ connection.connect((err) => {
     console.log('Conectado a la base de datos MySQL');
 });
 
-// Usa las rutas de usuarios
+//!RUTAS GET
 app.use('/api/users', userRoutes); // La ruta base para usuarios
+app.use('/api/barrios', barrioRoutes);
+app.use('/api/zonas', zonaRoutes);
+app.use('/api/clientes', clientesRoute);
 
 // Ruta simple para verificar que el servidor funciona
 app.get('/', (req, res) => {
