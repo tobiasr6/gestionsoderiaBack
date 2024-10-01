@@ -2,11 +2,17 @@
 const express = require('express');
 const mysql = require('mysql2');
 require('dotenv').config();
-const logger = require('./middleware/logger');
+const morgan = require('morgan');
+
+//!COMPONENTES
 const userRoutes = require('./routes/userRoute'); 
 const barrioRoutes = require('./routes/barriosRoute');
 const zonaRoutes = require('./routes/zonasRoute');
 const clientesRoute = require('./routes/clientesRoute');
+const productoRoute = require('./routes/productoRoute');
+const pedidoRoute = require('./routes/pedidosRoute');
+const entregaRoute = require('./routes/entregaRoute');
+const diaRoute = require('./routes/diaRoute');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,24 +26,18 @@ const connection = mysql.createConnection({
     port: process.env.DB_PORT
 });
 
-// Middleware
-app.use(logger); // Usa tu middleware de logger
+app.use(morgan('dev'))
 app.use(express.json()); // Permite que la app maneje JSON
-
-// Verificar la conexión a MySQL
-connection.connect((err) => {
-    if (err) {
-        console.error('Error conectando a la base de datos:', err);
-        return;
-    }
-    console.log('Conectado a la base de datos MySQL');
-});
 
 //!RUTAS GET
 app.use('/api/users', userRoutes); // La ruta base para usuarios
 app.use('/api/barrios', barrioRoutes);
 app.use('/api/zonas', zonaRoutes);
 app.use('/api/clientes', clientesRoute);
+app.use('/api/producto', productoRoute);
+app.use('/api/pedidos', pedidoRoute);
+app.use('/api/entrega', entregaRoute);
+app.use('/api/dia', diaRoute);
 
 // Ruta simple para verificar que el servidor funciona
 app.get('/', (req, res) => {
