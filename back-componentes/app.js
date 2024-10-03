@@ -1,10 +1,10 @@
-// back-componentes/app.js
 const express = require('express');
 const mysql = require('mysql2');
 require('dotenv').config();
 const morgan = require('morgan');
+const cors = require('cors');
 
-//!COMPONENTES
+//! COMPONENTES
 const userRoutes = require('./routes/userRoute'); 
 const barrioRoutes = require('./routes/barriosRoute');
 const zonaRoutes = require('./routes/zonasRoute');
@@ -26,14 +26,15 @@ const connection = mysql.createConnection({
     port: process.env.DB_PORT
 });
 
-app.use(morgan('dev'))
+app.use(morgan('dev'));
 app.use(express.json()); // Permite que la app maneje JSON
+app.use(cors({ origin: '*' })); // Permitir todas las solicitudes CORS
 
-//!RUTAS GET
+//! RUTAS
 app.use('/api/users', userRoutes); // La ruta base para usuarios
 app.use('/api/barrios', barrioRoutes);
 app.use('/api/zonas', zonaRoutes);
-app.use('/api/clientes', clientesRoute);
+app.use('/api/clientes', clientesRoute); // Aquí se manejan GET y POST
 app.use('/api/producto', productoRoute);
 app.use('/api/pedidos', pedidoRoute);
 app.use('/api/entrega', entregaRoute);
