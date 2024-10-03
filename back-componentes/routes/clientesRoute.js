@@ -1,9 +1,9 @@
-// back-componentes/routes/users.js
 const express = require('express');
+const { getAllClientes, addCliente } = require('../controllers/clientesController');
 const router = express.Router();
-const clienteController = require('../controllers/clientesController'); // Importa el controlador
 
-// Ruta para obtener todos los usuarios
-router.get('/', clienteController.getAllClientes);
+// Rutas GET y POST para clientes
+router.get('/', getAllClientes); // Ruta para obtener todos los clientes
+router.post('/', addCliente); // Ruta para agregar un nuevo cliente
 
 module.exports = router;
