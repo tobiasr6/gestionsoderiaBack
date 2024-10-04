@@ -6,7 +6,7 @@ const getAllClientes = (req, res) => {
             c.idCliente AS id,
             c.nombre,
             c.direccion,
-            n.nombreZona AS nombreZona,
+            z.nombreZona AS nombreZona,
             c.telefono,
             c.observaciones AS observaciones,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('cantidad', p.cantidad, 'producto', prod.tipoProducto)) 
@@ -20,9 +20,9 @@ const getAllClientes = (req, res) => {
         FROM 
             cliente c
         JOIN 
-            zona n ON c.idBarrio = n.idZona
+            zona z ON c.idZona = z.idZona
         GROUP BY 
-            c.idCliente;  -- Agrupar por cliente
+            c.idCliente;
     `;
 
     db.query(query, (err, results) => {
@@ -34,11 +34,12 @@ const getAllClientes = (req, res) => {
     });
 };
 
+
 const addCliente = (req, res) => {
     const { nombre, direccion, idBarrio, telefono, observaciones, pedidos, diasRecorrido } = req.body;
 
     // Obtener la zona correspondiente al barrio
-    const queryZona = `SELECT idZona FROM barrio WHERE idBarrio = ?`;
+    const queryZona = `SELECT idZona FROM barrio WHERE idBarrio = ?;`;
 
     db.query(queryZona, [idBarrio], (err, resultZona) => {
         if (err) {
@@ -52,13 +53,13 @@ const addCliente = (req, res) => {
 
         const idZona = resultZona[0].idZona;
 
-        // Insertar cliente en la tabla cliente con el barrio seleccionado
+        // Insertar cliente en la tabla cliente con el barrio y zona correspondientes
         const queryCliente = `
-            INSERT INTO cliente (nombre, direccion, idBarrio, telefono, observaciones) 
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO cliente (nombre, direccion, idBarrio, idZona, telefono, observaciones) 
+            VALUES (?, ?, ?, ?, ?, ?)
         `;
 
-        db.query(queryCliente, [nombre, direccion, idBarrio, telefono, observaciones], (err, resultCliente) => {
+        db.query(queryCliente, [nombre, direccion, idBarrio, idZona, telefono, observaciones], (err, resultCliente) => {
             if (err) {
                 console.error('Error al insertar el cliente:', err);
                 return res.status(500).json({ error: 'Error al insertar el cliente' });
@@ -72,14 +73,17 @@ const addCliente = (req, res) => {
                 VALUES (?, ?, ?)
             `;
 
-            pedidos.forEach((pedido) => {
-                db.query(queryPedido, [idCliente, pedido.cantidad, pedido.producto], (err) => {
-                    if (err) {
-                        console.error('Error al insertar el pedido:', err);
-                        return res.status(500).json({ error: 'Error al insertar el pedido' });
-                    }
+            // Asegúrate de que 'pedidos' sea un array y esté definido
+            if (Array.isArray(pedidos)) {
+                pedidos.forEach((pedido) => {
+                    db.query(queryPedido, [idCliente, pedido.cantidad, pedido.producto], (err) => {
+                        if (err) {
+                            console.error('Error al insertar el pedido:', err);
+                            return res.status(500).json({ error: 'Error al insertar el pedido' });
+                        }
+                    });
                 });
-            });
+            }
 
             // Insertar días de recorrido en la tabla clienteDia
             const queryDiaRecorrido = `
@@ -87,39 +91,60 @@ const addCliente = (req, res) => {
                 VALUES (?, ?)
             `;
 
-            diasRecorrido.forEach((diaRecorrido) => {
-                db.query(queryDiaRecorrido, [idCliente, diaRecorrido.dia], (err) => {
-                    if (err) {
-                        console.error('Error al insertar el día de recorrido:', err);
-                        return res.status(500).json({ error: 'Error al insertar el día de recorrido' });
-                    }
+            // Asegúrate de que 'diasRecorrido' sea un array y esté definido
+            if (Array.isArray(diasRecorrido)) {
+                diasRecorrido.forEach((diaRecorrido) => {
+                    db.query(queryDiaRecorrido, [idCliente, diaRecorrido.dia], (err) => {
+                        if (err) {
+                            console.error('Error al insertar el día de recorrido:', err);
+                            return res.status(500).json({ error: 'Error al insertar el día de recorrido' });
+                        }
+                    });
                 });
-            });
+            }
 
-            // Consultar el nombre de la zona correspondiente
-            const queryNombreZona = `SELECT nombreZona FROM zona WHERE idZona = ?`;
-            db.query(queryNombreZona, [idZona], (err, resultNombreZona) => {
+            // Devolver respuesta de éxito
+            res.status(201).json({ message: 'Cliente creado con éxito', idCliente });
+        });
+    });
+};
+
+const deleteCliente = (req, res) => {
+    const { idCliente } = req.params;
+
+    //Primero eliminar los registros relacionados con pedidos y dias recorrido
+    const queryDeletePedidos = `DELETE FROM pedidosinter WHERE idCliente = ?;`;
+    const queryDeleteDias = `DELETE FROM clienteDia WHERE idCliente = ?;`;
+
+    db.query(queryDeletePedidos, [idCliente], (err) => {
+        if (err) {
+            console.error('Error al eliminar los pedidos:', err);
+            return res.status(500).json({ error: 'Error al eliminar los pedidos' });
+        }
+
+        db.query(queryDeleteDias, [idCliente], (err) => {
+            if (err) {
+                console.error('Error al eliminar los días de recorrido:', err);
+                return res.status(500).json({ error: 'Error al eliminar los días de recorrido' });
+            }
+
+            // Luego eliminar el cliente
+            const queryDeleteCliente = `DELETE FROM cliente WHERE idCliente = ?;`;
+
+            db.query(queryDeleteCliente, [idCliente], (err) => {
                 if (err) {
-                    console.error('Error al obtener el nombre de la zona:', err);
-                    return res.status(500).json({ error: 'Error al obtener el nombre de la zona' });
+                    console.error('Error al eliminar el cliente:', err);
+                    return res.status(500).json({ error: 'Error al eliminar el cliente' });
                 }
 
-                if (resultNombreZona.length === 0) {
-                    return res.status(400).json({ error: 'Zona no encontrada' });
-                }
-
-                const nombreZona = resultNombreZona[0].nombreZona;
-
-                // Devolver respuesta de éxito con el nombre de la zona
-                res.status(201).json({ message: 'Cliente creado con éxito', nombreZona });
+                res.status(200).json({ message: 'Cliente eliminado con éxito' });
             });
         });
     });
 };
 
-
-
 module.exports = {
     getAllClientes,
-    addCliente
+    addCliente,
+    deleteCliente
 };
