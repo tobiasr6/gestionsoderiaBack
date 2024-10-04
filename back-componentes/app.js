@@ -34,7 +34,7 @@ app.use(cors({ origin: '*' })); // Permitir todas las solicitudes CORS
 app.use('/api/users', userRoutes); // La ruta base para usuarios
 app.use('/api/barrios', barrioRoutes);
 app.use('/api/zonas', zonaRoutes);
-app.use('/api/clientes', clientesRoute); // Aquí se manejan GET y POST
+app.use('/api/clientes', clientesRoute); // Aquí se manejan GET, POST, DELETE
 app.use('/api/producto', productoRoute);
 app.use('/api/pedidos', pedidoRoute);
 app.use('/api/entrega', entregaRoute);
