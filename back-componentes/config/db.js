@@ -1,20 +1,15 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise'); // Importa el módulo mysql2 con soporte de promesas
 require('dotenv').config();
 
-const connection = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT
+// Crea un pool de conexiones a la base de datos
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+    connectionLimit: 10 // Ajusta según la necesidad de tu aplicación
 });
 
-connection.connect((err) => {
-  if (err) {
-    console.error('Error conectando a la base de datos:', err);
-    return;
-  }
-  console.log('Conectado a la base de datos MySQL');
-});
-
-module.exports = connection;
+// Exporta el pool para que pueda ser utilizado en otros módulos
+module.exports = pool;
