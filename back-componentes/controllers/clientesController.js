@@ -6,9 +6,11 @@ const getAllClientes = async (req, res) => {
             c.idCliente AS id,
             c.nombre,
             c.direccion,
-            z.nombreZona AS nombreZona,
             c.telefono,
-            c.observaciones AS observaciones,
+            c.observaciones,
+            z.nombreZona AS nombreZona,
+            b.idBarrio AS idBarrio,
+            b.nombreBarrio AS nombreBarrio,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('cantidad', p.cantidad, 'producto', prod.tipoProducto)) 
              FROM pedidosinter p 
              JOIN producto prod ON p.idProducto = prod.idProducto 
@@ -21,6 +23,8 @@ const getAllClientes = async (req, res) => {
             cliente c
         JOIN 
             zona z ON c.idZona = z.idZona
+        JOIN 
+            barrio b ON c.idBarrio = b.idBarrio
         GROUP BY 
             c.idCliente;
     `;
@@ -115,17 +119,27 @@ const deleteCliente = async (req, res) => {
 const editCliente = async (req, res) => {
     const { idCliente, nombre, direccion, idBarrio, telefono, observaciones, pedidos, diasRecorrido } = req.body;
 
-    // Obtener la zona correspondiente al barrio
-    const queryZona = `SELECT idZona FROM barrio WHERE idBarrio = ?;`;
-    
-    try {
-        const [resultZona] = await pool.query(queryZona, [idBarrio]);
+    // Obtener la zona y el nombre del barrio correspondiente
+    const queryBarrioZona = `
+        SELECT 
+            b.nombreBarrio, 
+            z.idZona 
+        FROM 
+            barrio b 
+        JOIN 
+            zona z ON b.idZona = z.idZona 
+        WHERE 
+            b.idBarrio = ?;
+    `;
 
-        if (resultZona.length === 0) {
+    try {
+        const [resultBarrioZona] = await pool.query(queryBarrioZona, [idBarrio]);
+
+        if (resultBarrioZona.length === 0) {
             return res.status(400).json({ error: 'Barrio no encontrado o sin zona asignada' });
         }
 
-        const idZona = resultZona[0].idZona;
+        const { nombreBarrio, idZona } = resultBarrioZona[0];
 
         // Actualizar cliente en la tabla cliente
         const queryCliente = `
@@ -166,17 +180,65 @@ const editCliente = async (req, res) => {
             }));
         }
 
-        // Devolver respuesta de éxito
-        res.status(200).json({ message: 'Cliente actualizado con éxito' });
+        // Devolver respuesta con el nombre del barrio y éxito
+        res.status(200).json({ message: 'Cliente actualizado con éxito', nombreBarrio });
     } catch (err) {
         console.error('Error al editar el cliente:', err);
         return res.status(500).json({ error: 'Error al editar el cliente' });
     }
 };
 
+const getClienteById = async (req, res) => {
+    const { idCliente } = req.params; // Obtenemos el idCliente de los parámetros de la URL
+
+    const query = `
+        SELECT 
+            c.idCliente AS id,
+            c.nombre,
+            c.direccion,
+            c.telefono,
+            c.observaciones,
+            z.nombreZona AS nombreZona,
+            b.idBarrio AS idBarrio,
+            b.nombreBarrio AS nombreBarrio,
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('cantidad', p.cantidad, 'producto', prod.tipoProducto)) 
+             FROM pedidosinter p 
+             JOIN producto prod ON p.idProducto = prod.idProducto 
+             WHERE p.idCliente = c.idCliente) AS pedidos,
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('dia', d.diaSemana)) 
+             FROM clienteDia cd 
+             JOIN dia d ON cd.idDia = d.idDia 
+             WHERE cd.idCliente = c.idCliente) AS diasRecorrido
+        FROM 
+            cliente c
+        JOIN 
+            zona z ON c.idZona = z.idZona
+        JOIN 
+            barrio b ON c.idBarrio = b.idBarrio
+        WHERE 
+            c.idCliente = ?;  -- Filtro por el idCliente pasado
+    `;
+
+    try {
+        const [results] = await pool.query(query, [idCliente]);
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        res.json(results[0]);  // Devolvemos solo el primer (y único) resultado
+    } catch (err) {
+        console.error('Error al obtener el cliente:', err);
+        return res.status(500).json({ error: 'Error al obtener el cliente' });
+    }
+};
+
+
+
 module.exports = {
     getAllClientes,
     addCliente,
     deleteCliente,
-    editCliente
+    editCliente,
+    getClienteById
 };
