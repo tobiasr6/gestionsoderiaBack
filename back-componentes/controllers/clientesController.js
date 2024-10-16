@@ -119,6 +119,11 @@ const deleteCliente = async (req, res) => {
 const editCliente = async (req, res) => {
     const { idCliente, nombre, direccion, idBarrio, telefono, observaciones, pedidos, diasRecorrido } = req.body;
 
+    // Verificar que idCliente está definido
+    if (!idCliente) {
+        return res.status(400).json({ error: 'idCliente es requerido' });
+    }
+
     // Obtener la zona y el nombre del barrio correspondiente
     const queryBarrioZona = `
         SELECT 
@@ -141,13 +146,20 @@ const editCliente = async (req, res) => {
 
         const { nombreBarrio, idZona } = resultBarrioZona[0];
 
+        // Verificar que el cliente existe
+        const queryClienteExist = `SELECT idCliente FROM cliente WHERE idCliente = ?`;
+        const [clienteExist] = await pool.query(queryClienteExist, [idCliente]);
+
+        if (clienteExist.length === 0) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
         // Actualizar cliente en la tabla cliente
         const queryCliente = `
             UPDATE cliente SET
                 nombre = ?, direccion = ?, idBarrio = ?, idZona = ?, telefono = ?, observaciones = ?
             WHERE idCliente = ?
         `;
-
         await pool.query(queryCliente, [nombre, direccion, idBarrio, idZona, telefono, observaciones, idCliente]);
 
         // Actualizar pedidos en la tabla pedidosinter
@@ -158,7 +170,6 @@ const editCliente = async (req, res) => {
             INSERT INTO pedidosinter (idCliente, cantidad, idProducto) 
             VALUES (?, ?, ?)
         `;
-
         if (Array.isArray(pedidos)) {
             await Promise.all(pedidos.map(async (pedido) => {
                 await pool.query(queryPedidoInsert, [idCliente, pedido.cantidad, pedido.producto]);
@@ -173,7 +184,6 @@ const editCliente = async (req, res) => {
             INSERT INTO clienteDia (idCliente, idDia) 
             VALUES (?, ?)
         `;
-
         if (Array.isArray(diasRecorrido)) {
             await Promise.all(diasRecorrido.map(async (diaRecorrido) => {
                 await pool.query(queryDiaInsert, [idCliente, diaRecorrido.dia]);
@@ -187,6 +197,7 @@ const editCliente = async (req, res) => {
         return res.status(500).json({ error: 'Error al editar el cliente' });
     }
 };
+
 
 const getClienteById = async (req, res) => {
     const { idCliente } = req.params; // Obtenemos el idCliente de los parámetros de la URL
