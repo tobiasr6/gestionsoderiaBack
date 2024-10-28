@@ -14,6 +14,7 @@ const pedidoRoute = require('./routes/pedidosRoute');
 const entregaRoute = require('./routes/entregaRoute');
 const diaRoute = require('./routes/diaRoute');
 const authRoutes = require('./routes/authRoutes');
+const estadoRoutes = require('./routes/estadoRoutes')
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,7 @@ app.use('/api/pedidos', pedidoRoute);
 app.use('/api/entrega', entregaRoute);
 app.use('/api/dia', diaRoute);
 app.use('/api', authRoutes);
+app.use('/api/estado', estadoRoutes)
 
 // Ruta simple para verificar que el servidor funciona
 app.get('/', (req, res) => {
