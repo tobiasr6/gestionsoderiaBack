@@ -8,17 +8,18 @@ const getAllClientes = async (req, res) => {
             c.direccion,
             c.telefono,
             c.observaciones,
+            c.estado,
             z.nombreZona AS nombreZona,
             b.idBarrio AS idBarrio,
             b.nombreBarrio AS nombreBarrio,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('cantidad', p.cantidad, 'producto', prod.tipoProducto)) 
-             FROM pedidosinter p 
-             JOIN producto prod ON p.idProducto = prod.idProducto 
-             WHERE p.idCliente = c.idCliente) AS pedidos,
+            FROM pedidosinter p 
+            JOIN producto prod ON p.idProducto = prod.idProducto 
+            WHERE p.idCliente = c.idCliente) AS pedidos,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('dia', d.diaSemana)) 
-             FROM clienteDia cd 
-             JOIN dia d ON cd.idDia = d.idDia 
-             WHERE cd.idCliente = c.idCliente) AS diasRecorrido
+            FROM clienteDia cd 
+            JOIN dia d ON cd.idDia = d.idDia 
+            WHERE cd.idCliente = c.idCliente) AS diasRecorrido
         FROM 
             cliente c
         JOIN 
@@ -213,13 +214,13 @@ const getClienteById = async (req, res) => {
             b.idBarrio AS idBarrio,
             b.nombreBarrio AS nombreBarrio,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('cantidad', p.cantidad, 'producto', prod.tipoProducto)) 
-             FROM pedidosinter p 
-             JOIN producto prod ON p.idProducto = prod.idProducto 
-             WHERE p.idCliente = c.idCliente) AS pedidos,
+            FROM pedidosinter p 
+            JOIN producto prod ON p.idProducto = prod.idProducto 
+            WHERE p.idCliente = c.idCliente) AS pedidos,
             (SELECT JSON_ARRAYAGG(JSON_OBJECT('dia', d.diaSemana)) 
-             FROM clienteDia cd 
-             JOIN dia d ON cd.idDia = d.idDia 
-             WHERE cd.idCliente = c.idCliente) AS diasRecorrido
+            FROM clienteDia cd 
+            JOIN dia d ON cd.idDia = d.idDia 
+            WHERE cd.idCliente = c.idCliente) AS diasRecorrido
         FROM 
             cliente c
         JOIN 
@@ -244,12 +245,27 @@ const getClienteById = async (req, res) => {
     }
 };
 
+const updateEstadoCliente = async (req, res) => {
+    const { idCliente } = req.params;
+    const { estado } = req.body; // Estado a actualizar (ej. "activo" o "inactivo")
 
+    try {
+        // Actualizar solo el estado del cliente en la tabla cliente
+        const query = `UPDATE cliente SET estado = ? WHERE idCliente = ?`;
+        await pool.query(query, [estado, idCliente]);
+
+        res.status(200).json({ message: `Estado del cliente actualizado a ${estado}` });
+    } catch (err) {
+        console.error('Error al actualizar el estado del cliente:', err);
+        return res.status(500).json({ error: 'Error al actualizar el estado del cliente' });
+    }
+};
 
 module.exports = {
     getAllClientes,
     addCliente,
     deleteCliente,
     editCliente,
-    getClienteById
+    getClienteById,
+    updateEstadoCliente
 };
