@@ -40,7 +40,7 @@ const getAllClientes = async (req, res) => {
 };
 
 const addCliente = async (req, res) => {
-    const { nombre, direccion, idBarrio, telefono, observaciones, pedidos, diasRecorrido } = req.body;
+    const { nombre, direccion, idBarrio, telefono, observaciones, estado, pedidos, diasRecorrido } = req.body;
 
     // Obtener la zona correspondiente al barrio
     const queryZona = `SELECT idZona FROM barrio WHERE idBarrio = ?;`;
@@ -56,11 +56,11 @@ const addCliente = async (req, res) => {
 
         // Insertar cliente en la tabla cliente con el barrio y zona correspondientes
         const queryCliente = `
-            INSERT INTO cliente (nombre, direccion, idBarrio, idZona, telefono, observaciones) 
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO cliente (nombre, direccion, idBarrio, idZona, telefono, observaciones, estado) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         `;
 
-        const [resultCliente] = await pool.query(queryCliente, [nombre, direccion, idBarrio, idZona, telefono, observaciones]);
+        const [resultCliente] = await pool.query(queryCliente, [nombre, direccion, idBarrio, idZona, telefono, observaciones, estado]);
         const idCliente = resultCliente.insertId;  // Obtenemos el ID del cliente recién insertado
 
         // Insertar pedidos en la tabla pedidosinter
